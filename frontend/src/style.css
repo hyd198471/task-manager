@@ -1,0 +1,22 @@
+body { font-family: Arial, sans-serif; margin: 0; padding: 1rem; background: #f5f5f5; }
+.container { max-width: 900px; margin: 0 auto; }
+.task-form, .task-list { background: #fff; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+.task-form div, .modal form div { margin-bottom: .5rem; }
+.task-form input, .task-form textarea, select { width: 100%; padding: .5rem; }
+button { cursor: pointer; margin-right: .5rem; }
+.errors { background: #ffecec; color: #c00; padding: .5rem; border-radius: 4px; margin-bottom: .5rem; }
+.global-error { background:#ffecec; color:#c00; padding:.5rem; border-radius:4px; margin-bottom:1rem; }
+.task-list ul { list-style:none; padding:0; }
+.task-list li { border-bottom:1px solid #ddd; padding:.5rem 0; }
+.task-list li:last-child { border-bottom:none; }
+.task-list .row { display:flex; gap:.5rem; align-items:center; }
+.task-list .meta { display:flex; align-items:center; gap:.5rem; font-size:.85rem; }
+.task-list .actions { margin-top:.5rem; }
+.status-todo { background:#fafafa; }
+.status-in_progress { background:#f0f7ff; }
+.status-done { background:#f5fff0; }
+.modal-backdrop { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.4); display:flex; align-items:center; justify-content:center; }
+.modal { background:#fff; padding:1rem; border-radius:8px; width:400px; max-width:95%; }
+.toolbar { margin:1rem 0; }
+.due { background:#222; color:#fff; padding:2px 6px; border-radius:4px; }
+

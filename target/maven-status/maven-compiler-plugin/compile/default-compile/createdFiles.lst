@@ -1,0 +1,13 @@
+com/taskmanager/controller/TaskController$TaskStatusUpdateRequest.class
+com/taskmanager/config/DataInitializer.class
+com/taskmanager/exception/GlobalExceptionHandler$ErrorResponse.class
+com/taskmanager/controller/TaskController.class
+com/taskmanager/exception/TaskNotFoundException.class
+com/taskmanager/config/CorsConfig.class
+com/taskmanager/service/TaskService.class
+com/taskmanager/entity/TaskStatus.class
+com/taskmanager/exception/GlobalExceptionHandler$ValidationErrorResponse.class
+com/taskmanager/repository/TaskRepository.class
+com/taskmanager/exception/GlobalExceptionHandler.class
+com/taskmanager/TaskManagerApplication.class
+com/taskmanager/entity/Task.class
