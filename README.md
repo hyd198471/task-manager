@@ -92,5 +92,124 @@ This project was co-developed with an AI assistant for:
 - Authentication & multi-user tenancy
 - Deployment pipeline (CI/CD) + containerization
 
+## Docker & Containerization
+This project includes container definitions for both backend (Spring Boot) and frontend (React/Vite served by Nginx) plus a `docker-compose.yml` to orchestrate them.
+
+### Build Images Individually
+```bash
+# Backend (from ./backend)
+docker build -t task-manager-backend:latest backend
+
+# Frontend (inject API base at build-time if different)
+docker build --build-arg VITE_API_BASE=http://localhost:8080/api -t task-manager-frontend:latest frontend
+```
+
+### Run Containers Individually
+```bash
+# Run backend
+docker run -d --name task-manager-backend -p 8080:8080 \
+  -e APP_CORS_ALLOWEDORIGINS=http://localhost:5173 \
+  task-manager-backend:latest
+
+# Run frontend (port 5173 mapped to Nginx port 80)
+docker run -d --name task-manager-frontend -p 5173:80 task-manager-frontend:latest
+```
+Access frontend at http://localhost:5173 and API at http://localhost:8080/api.
+
+### Using Docker Compose
+```bash
+docker compose up --build
+```
+This will build both images (if not present) and start:
+- Backend: http://localhost:8080
+- Frontend: http://localhost:5173
+
+Stop with:
+```bash
+docker compose down
+```
+
+### Environment & Configuration
+- Backend CORS origins: set via `APP_CORS_ALLOWEDORIGINS` (maps to `app.cors.allowedOrigins`).
+- Frontend API base: injected at build time via `--build-arg VITE_API_BASE=...` in Docker build.
+
+If you need to point the frontend to a different backend host (e.g., staging), rebuild the frontend image with the new `VITE_API_BASE`.
+
+### Development vs Production
+For rapid local development you may still prefer running `mvn spring-boot:run` and `npm run dev`. Containers are suited for integration testing and deployment. The frontend image serves static content via Nginx (no hot reload). The backend image is a slim JRE using a non-root user for better security.
+
+### Common Adjustments
+- Persisting data: replace in-memory H2 with a persistent database (e.g., Postgres) and add a service in `docker-compose.yml`.
+- Multi-arch builds: use `docker buildx build --platform linux/amd64,linux/arm64 ...`.
+- Image tags: version images (e.g., `task-manager-backend:1.0.0`) instead of `latest` for CI/CD.
+
+## Troubleshooting
+### BuildKit / buildx cgroup error
+If you see:
+```
+Error response from daemon: cgroup-parent for systemd cgroup should be a valid slice named as "xxx.slice"
+```
+This is a Docker BuildKit + buildx issue (common under some WSL2 / rootless setups) when Compose delegates builds. Workarounds:
+1. Disable BuildKit temporarily (already provided via `.env`):
+```bash
+docker compose build
+```
+2. One-off without .env:
+```bash
+DOCKER_BUILDKIT=0 COMPOSE_DOCKER_CLI_BUILD=0 docker compose up --build
+```
+3. Force classic builder only for a single image:
+```bash
+DOCKER_BUILDKIT=0 docker build -t task-manager-backend:latest backend
+```
+Long-term fix: Update Docker Desktop / engine, ensure systemd + cgroup v2 properly configured, or recreate the builder:
+```bash
+docker buildx rm mybuilder 2>/dev/null || true
+docker buildx create --use --name mybuilder
+```
+
+### Stale / broken frontend after nginx.conf fix
+If Compose keeps using an old cached layer:
+```bash
+docker compose down
+rm -f frontend/dist/** 2>/dev/null || true
+DOCKER_BUILDKIT=0 docker compose build --no-cache frontend
+docker compose up -d frontend
+```
+Make sure no standalone container is still binding the port:
+```bash
+docker ps --format '{{.Names}}\t{{.Ports}}'
+```
+If you see `tm-frontend-fix`, remove it before `docker compose up`:
+```bash
+docker rm -f tm-frontend-fix
+```
+
+### Cleaning everything
+```bash
+docker compose down -v --remove-orphans
+docker rm -f tm-frontend-fix tm-backend-fix 2>/dev/null || true
+# Prune dangling images (optional)
+docker image prune -f
+```
+
+### Health checks (optional enhancement)
+Add to `docker-compose.yml`:
+```yaml
+  backend:
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    # (Also add spring-boot-starter-actuator & enable health endpoint.)
+  frontend:
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+```
+
 ## License
 MIT (adjust as needed).
