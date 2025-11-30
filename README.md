@@ -213,3 +213,71 @@ Add to `docker-compose.yml`:
 
 ## License
 MIT (adjust as needed).
+
+**MCP Server**
+- **Purpose**: Exposes a small set of developer-only tools that an AI agent can call to inspect the `tasks` schema, insert records, and retrieve simple summaries. These endpoints are intended for local development, testing, and automated data generation only.
+- **Spec version**: `2025-06-18` (available via `GET /api/mcp/mcp-spec`).
+
+- **Tools / Endpoints**:
+  - **mcp-schema-tasks**: `GET /api/mcp/mcp-schema-tasks` — returns a simplified JSON-Schema for the `Task` object (properties: `title`, `description`, `status`, `dueDate`).
+  - **mcp-tasks**: `POST /api/mcp/mcp-tasks` — accepts a JSON array of `TaskRequest` objects and inserts them into the DB. Each object should match the DTO: `title` (string, required, <=100 chars), `description` (string, optional, <=500 chars), `status` (`TODO|IN_PROGRESS|DONE`), `dueDate` (`YYYY-MM-DD`, optional).
+  - **mcp-tasks-summary**: `GET /api/mcp/mcp-tasks-summary` — returns `{ "byStatus": {..}, "total": <n> }`.
+  - **mcp-help**: `GET /api/mcp/mcp-help` — short map with endpoint descriptions.
+  - **mcp-generate**: `POST /api/mcp/generate?count=N` — server-side convenience endpoint that generates N realistic tasks using Java Faker and inserts them.
+
+**How it works**
+- The MCP controller lives at `backend/src/main/java/com/example/taskmanager/mcp/` and delegates to `McpService`.
+- `McpService` exposes helpers:
+  - JSON Schema generation for `Task` (`getJsonSchemaForTasks()`)
+  - Insert single/batch tasks (`insertTask`, `insertTasks`)
+  - Generate realistic tasks using `javafaker` (`generateTestData`)
+  - Summary statistics (`getSummary()`)
+
+**Sample agent prompt (example)**
+"Inspect the Task schema by calling `GET /api/mcp/mcp-schema-tasks`. Then generate 1000 realistic Task objects following the schema, POST them as a JSON array to `POST /api/mcp/mcp-tasks`, and finally call `GET /api/mcp/mcp-tasks-summary` to confirm that 1000 records were inserted. Return the summary JSON." 
+
+**Recorded test: inserting 1000 records**
+- Steps I ran locally (commands):
+```bash
+# start backend (or use docker compose)
+# from repo root
+cd backend
+nohup mvn -DskipTests spring-boot:run > ../backend-run.log 2>&1 & echo $!
+
+# inspect spec
+curl -s http://localhost:8080/api/mcp/mcp-spec | jq .
+
+# save schema
+curl -s http://localhost:8080/api/mcp/mcp-schema-tasks | jq . > /tmp/mcp_schema.json
+
+# insert 1000 generated tasks (client-side generator)
+python3 scripts/insert_tasks.py 1000
+
+# check summary
+curl -s http://localhost:8080/api/mcp/mcp-tasks-summary | jq . > /tmp/mcp_summary.json
+cat /tmp/mcp_summary.json
+```
+
+- Result (recorded): the summary returned by `/api/mcp/mcp-tasks-summary` after insertion was:
+
+```json
+{
+  "byStatus": { "TODO": 325, "IN_PROGRESS": 343, "DONE": 332 },
+  "total": 1000
+}
+```
+
+**Saved artifacts / logs**
+- Schema JSON: `/tmp/mcp_schema.json`
+- Summary after insertion: `/tmp/mcp_summary.json`
+- Backend run log: `backend-run.log` (created at project root when backend started with nohup)
+
+**Security & recommendations**
+- These MCP endpoints are intentionally unsafe for public exposure — they are unauthenticated developer tools. Before exposing them beyond a trusted network, add authentication (token or OAuth) and restrict access by environment.
+- For deterministic generated data (repeatable tests), seed the `Faker` instance in `McpService` from an environment variable.
+- For very large bulk loads, consider batching inserts and enabling JDBC batching for performance.
+
+If you'd like, I can (pick one):
+- Add a small token guard around `/api/mcp/**` (development-only) and document how to enable it.
+- Make Faker deterministic via an env var and re-run the 1000-insert test to produce a deterministic sample.
+- Commit the saved `/tmp/mcp_schema.json` and `/tmp/mcp_summary.json` into a `docs/` folder in the repo for easy reference.
