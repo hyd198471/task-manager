@@ -3,6 +3,7 @@ import { TaskStatus, TaskRequest } from '../types';
 
 interface Props {
   onSubmit: (req: TaskRequest) => void;
+  loading?: boolean;
 }
 
 const statuses: TaskStatus[] = ['TODO', 'IN_PROGRESS', 'DONE'];
@@ -12,35 +13,54 @@ export const TaskForm: React.FC<Props> = ({ onSubmit }) => {
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<TaskStatus>('TODO');
   const [dueDate, setDueDate] = useState('');
-  const [errors, setErrors] = useState<string[]>([]);
+  const [errors, setErrors] = useState<Record<string,string>>({});
 
   function validate(): boolean {
-    const errs: string[] = [];
-    if (!title.trim()) errs.push('Title is required');
-    if (title.length > 100) errs.push('Title must be <= 100 characters');
-    if (description.length > 500) errs.push('Description must be <= 500 characters');
+    const errs: Record<string,string> = {};
+    if (!title.trim()) errs.title = 'Title is required';
+    if (title.length > 100) errs.title = 'Title must be <= 100 characters';
+    if (description.length > 500) errs.description = 'Description must be <= 500 characters';
     setErrors(errs);
-    return errs.length === 0;
+    return Object.keys(errs).length === 0;
   }
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
+    setErrors({});
     if (!validate()) return;
-    onSubmit({ title: title.trim(), description: description.trim() || undefined, status, dueDate: dueDate || undefined });
-    setTitle(''); setDescription(''); setStatus('TODO'); setDueDate(''); setErrors([]);
+    try {
+      await onSubmit({ title: title.trim(), description: description.trim() || undefined, status, dueDate: dueDate || undefined });
+      setTitle(''); setDescription(''); setStatus('TODO'); setDueDate(''); setErrors({});
+    } catch (err: any) {
+      // Try to extract fieldErrors from backend response
+      const fieldErrors = err?.response?.data?.fieldErrors;
+      if (fieldErrors && typeof fieldErrors === 'object') {
+        setErrors(fieldErrors);
+      } else {
+        setErrors({ global: err?.message || 'Unknown error' });
+      }
+    }
   }
 
   return (
     <form onSubmit={submit} className="task-form">
       <h3>Create Task</h3>
-      {errors.length > 0 && <div className="errors">{errors.map(e => <div key={e}>{e}</div>)}</div>}
+      {Object.keys(errors).length > 0 && (
+        <div className="errors">
+          {errors.global && <div key="global">{errors.global}</div>}
+          {errors.title && <div key="title">Title: {errors.title}</div>}
+          {errors.description && <div key="desc">Description: {errors.description}</div>}
+        </div>
+      )}
       <div>
         <label>Title</label>
-        <input value={title} onChange={e => setTitle(e.target.value)} required maxLength={100} />
+        <input value={title} onChange={e => setTitle(e.target.value)} required maxLength={100} disabled={loading} />
+        {errors.title && <div className="field-error">{errors.title}</div>}
       </div>
       <div>
         <label>Description</label>
-        <textarea value={description} onChange={e => setDescription(e.target.value)} maxLength={500} />
+        <textarea value={description} onChange={e => setDescription(e.target.value)} maxLength={500} disabled={loading} />
+        {errors.description && <div className="field-error">{errors.description}</div>}
       </div>
       <div>
         <label>Status</label>
@@ -52,7 +72,7 @@ export const TaskForm: React.FC<Props> = ({ onSubmit }) => {
         <label>Due Date</label>
         <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} />
       </div>
-      <button type="submit">Add</button>
+      <button type="submit" disabled={loading}>Add</button>
     </form>
   );
 };

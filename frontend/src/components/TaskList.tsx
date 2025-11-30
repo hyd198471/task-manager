@@ -7,9 +7,10 @@ interface Props {
   onDelete: (id: number) => void;
   onUpdate: (id: number, req: Partial<Task>) => void;
   onEdit: (id: number, req: any) => void;
+  loading?: boolean;
 }
 
-export const TaskList: React.FC<Props> = ({ tasks, onDelete, onUpdate, onEdit }) => {
+export const TaskList: React.FC<Props> = ({ tasks, onDelete, onUpdate, onEdit, loading }) => {
   const [editing, setEditing] = useState<Task | null>(null);
 
   function changeStatus(task: Task, status: TaskStatus) {
@@ -29,7 +30,7 @@ export const TaskList: React.FC<Props> = ({ tasks, onDelete, onUpdate, onEdit })
             {t.description && <div className="desc">{t.description}</div>}
             <div className="meta">
               <label>Status: </label>
-              <select value={t.status} onChange={e => changeStatus(t, e.target.value as TaskStatus)}>
+              <select value={t.status} onChange={e => changeStatus(t, e.target.value as TaskStatus)} disabled={loading}>
                 <option>TODO</option>
                 <option>IN_PROGRESS</option>
                 <option>DONE</option>
@@ -37,13 +38,13 @@ export const TaskList: React.FC<Props> = ({ tasks, onDelete, onUpdate, onEdit })
               {t.dueDate && <span className="due">Due: {t.dueDate}</span>}
             </div>
             <div className="actions">
-              <button onClick={() => setEditing(t)}>Edit</button>
-              <button onClick={() => onDelete(t.id)}>Delete</button>
+              <button onClick={() => setEditing(t)} disabled={loading}>Edit</button>
+              <button onClick={() => onDelete(t.id)} disabled={loading}>Delete</button>
             </div>
           </li>
         ))}
       </ul>
-      {editing && <TaskEditModal task={editing} onClose={() => setEditing(null)} onSave={(id, req) => onEdit(id, req)} />}
+      {editing && <TaskEditModal task={editing} onClose={() => setEditing(null)} onSave={(id, req) => onEdit(id, req)} loading={loading} />}
     </div>
   );
 };

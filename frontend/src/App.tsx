@@ -5,7 +5,13 @@ import { useTasks } from './hooks/useTasks';
 import { TaskRequest, Task } from './types';
 
 const App: React.FC = () => {
-  const { tasks, add, update, remove, error, sort, setError } = useTasks();
+  const { tasks, add, update, remove, error, sort, setError, loading } = useTasks();
+
+  React.useEffect(() => {
+    if (!error) return;
+    const t = setTimeout(() => setError(null), 6000);
+    return () => clearTimeout(t);
+  }, [error, setError]);
 
   function handleCreate(req: TaskRequest) {
     add(req);
@@ -27,13 +33,17 @@ const App: React.FC = () => {
   return (
     <div className="container">
       <h1>Task Manager</h1>
-      {error && <div className="global-error" onClick={() => setError(null)}>{error}</div>}
-      <TaskForm onSubmit={handleCreate} />
+      {error && (
+        <div className="global-error" onClick={() => setError(null)}>
+          {error}
+        </div>
+      )}
+      <TaskForm onSubmit={handleCreate} loading={loading} />
       <div className="toolbar">
         <button onClick={() => sort('status')}>Sort by Status</button>
         <button onClick={() => sort('dueDate')}>Sort by Due Date</button>
       </div>
-      <TaskList tasks={tasks} onDelete={remove} onUpdate={handleUpdate} onEdit={update} />
+      <TaskList tasks={tasks} onDelete={remove} onUpdate={handleUpdate} onEdit={update} loading={loading} />
     </div>
   );
 };

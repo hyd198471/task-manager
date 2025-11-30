@@ -26,14 +26,22 @@ export function useTasks() {
     try {
       const created = await createTask(req);
       setTasks(t => [...t, created]);
-    } catch (e) { setError(formatError(e)); }
+      return created;
+    } catch (e) {
+      setError(formatError(e));
+      throw e;
+    }
   }
 
   async function update(id: number, req: TaskRequest) {
     try {
       const updated = await updateTask(id, req);
       setTasks(t => t.map(x => x.id === id ? updated : x));
-    } catch (e) { setError(formatError(e)); }
+      return updated;
+    } catch (e) {
+      setError(formatError(e));
+      throw e;
+    }
   }
 
   async function remove(id: number) {
