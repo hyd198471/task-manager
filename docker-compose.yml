@@ -1,4 +1,17 @@
 services:
+  postgres:
+    image: postgres:15
+    container_name: task-manager-postgres
+    environment:
+      POSTGRES_DB: tasksdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
   backend:
     build: ./backend
     container_name: task-manager-backend
@@ -6,6 +19,13 @@ services:
       - "8080:8080"
     environment:
       APP_CORS_ALLOWEDORIGINS: http://localhost:5173
+      # Use Postgres if provided via environment; defaults in application.properties fall back to H2
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/tasksdb
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_DATASOURCE_DRIVER: org.postgresql.Driver
+    depends_on:
+      - postgres
     restart: unless-stopped
 
   frontend:
@@ -19,3 +39,6 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
+
+volumes:
+  pgdata:
