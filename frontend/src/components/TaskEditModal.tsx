@@ -10,7 +10,7 @@ interface Props {
 
 const statuses: TaskStatus[] = ['TODO', 'IN_PROGRESS', 'DONE'];
 
-export const TaskEditModal: React.FC<Props> = ({ task, onClose, onSave }) => {
+export const TaskEditModal: React.FC<Props> = ({ task, onClose, onSave, loading = false }) => {
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description || '');
   const [status, setStatus] = useState<TaskStatus>(task.status);
@@ -54,27 +54,27 @@ export const TaskEditModal: React.FC<Props> = ({ task, onClose, onSave }) => {
             {errors.description && <div key="desc">Description: {errors.description}</div>}
           </div>
         )}
-        <form onSubmit={submit}>
-          <div>
-            <label>Title</label>
-            <input value={title} onChange={e => setTitle(e.target.value)} required maxLength={100} disabled={loading} />
-            {errors.title && <div className="field-error">{errors.title}</div>}
-          </div>
-          <div>
-            <label>Description</label>
-            <textarea value={description} onChange={e => setDescription(e.target.value)} maxLength={500} disabled={loading} />
-            {errors.description && <div className="field-error">{errors.description}</div>}
-          </div>
-          <div>
-            <label>Status</label>
-            <select value={status} onChange={e => setStatus(e.target.value as TaskStatus)}>
-              {statuses.map(s => <option key={s}>{s}</option>)}
-            </select>
-          </div>
-          <div>
-            <label>Due Date</label>
-            <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} />
-          </div>
+        <form onSubmit={submit} noValidate>
+            <div>
+              <label htmlFor="edit-title">Title</label>
+              <input id="edit-title" value={title} onChange={e => setTitle(e.target.value)} required maxLength={100} disabled={loading} />
+              {errors.title && <div className="field-error">{errors.title}</div>}
+            </div>
+            <div>
+              <label htmlFor="edit-desc">Description</label>
+              <textarea id="edit-desc" value={description} onChange={e => setDescription(e.target.value)} maxLength={500} disabled={loading} />
+              {errors.description && <div className="field-error">{errors.description}</div>}
+            </div>
+            <div>
+              <label htmlFor="edit-status">Status</label>
+              <select id="edit-status" value={status} onChange={e => setStatus(e.target.value as TaskStatus)}>
+                {statuses.map(s => <option key={s}>{s}</option>)}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="edit-due">Due Date</label>
+              <input id="edit-due" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} />
+            </div>
           <button type="submit" disabled={loading}>Save</button>
           <button type="button" onClick={onClose} disabled={loading}>Cancel</button>
         </form>
