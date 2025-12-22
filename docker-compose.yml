@@ -13,13 +13,15 @@ services:
     restart: unless-stopped
 
   backend:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: task-manager-backend
     ports:
       - "8080:8080"
     environment:
       APP_CORS_ALLOWEDORIGINS: http://localhost:5173
-      # Use Postgres if provided via environment; defaults in application.properties fall back to H2
+      MCP_TOKEN: demo-token
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/tasksdb
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres

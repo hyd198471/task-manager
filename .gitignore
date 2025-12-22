@@ -8,3 +8,6 @@ frontend/dist/
 .env
 .venv/
 
+/target/maven-archiver/pom.properties
+/target/task-manager-backend-1.0.0.jar
+/target/task-manager-backend-1.0.0.jar.original

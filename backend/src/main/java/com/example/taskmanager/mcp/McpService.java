@@ -7,7 +7,9 @@ import com.example.taskmanager.model.TaskStatus;
 import com.example.taskmanager.repository.TaskRepository;
 import com.github.javafaker.Faker;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.transaction.Transactional;
 import java.lang.reflect.Field;
@@ -15,8 +17,14 @@ import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Service
 public class McpService {
+
+    private static final Logger log = LoggerFactory.getLogger(McpService.class);
+    private static final int MAX_BATCH = 1000;
 
     private final TaskRepository taskRepository;
     private final Faker faker = new Faker(new Random());
@@ -110,6 +118,12 @@ public class McpService {
 
     @Transactional
     public List<TaskResponse> insertTasks(List<TaskRequest> reqs) {
+        if (reqs == null || reqs.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Task list cannot be empty");
+        }
+        if (reqs.size() > MAX_BATCH) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Batch too large; max 1000");
+        }
         List<Task> list = new ArrayList<>();
         for (TaskRequest r : reqs) {
             Task t = new Task();
@@ -120,11 +134,15 @@ public class McpService {
             list.add(t);
         }
         List<Task> saved = taskRepository.saveAll(list);
+        log.info("mcp-tasks inserted count={}", saved.size());
         return saved.stream().map(this::toResponse).collect(Collectors.toList());
     }
 
     @Transactional
     public List<TaskResponse> generateTestData(int count) {
+        if (count > MAX_BATCH) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Generation limit is 1000");
+        }
         List<Task> list = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             Task t = new Task();
@@ -141,6 +159,7 @@ public class McpService {
             list.add(t);
         }
         List<Task> saved = taskRepository.saveAll(list);
+        log.info("mcp-generate inserted count={}", saved.size());
         return saved.stream().map(this::toResponse).collect(Collectors.toList());
     }
 
